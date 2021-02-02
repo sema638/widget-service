@@ -89,6 +89,28 @@ public class WidgetControllerTest {
     }
 
     @Test
+    void filter() throws Exception {
+        LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
+        Widget widget = new Widget(1L, 10, 20, 5, 25, 35, lastModified);
+
+        List<Widget> widgets = List.of(widget);
+        when(widgetService.findAllInArea(0, 0, 100, 100)).thenReturn(widgets);
+
+        mockMvc.perform(MockMvcRequestBuilders.get(WIDGETS_LINK + "/filter?left=0&bottom=0&right=100&top=100")
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(widgets.size())))
+                .andExpect(jsonPath("$.[0].id", is(widget.getId().intValue())))
+                .andExpect(jsonPath("$.[0].x", is(widget.getX())))
+                .andExpect(jsonPath("$.[0].y", is(widget.getY())))
+                .andExpect(jsonPath("$.[0].zindex", is(widget.getZindex())))
+                .andExpect(jsonPath("$.[0].width", is(widget.getWidth())))
+                .andExpect(jsonPath("$.[0].height", is(widget.getHeight())))
+                .andExpect(jsonPath("$.[0].lastModified", is(lastModified.toString())));
+    }
+
+    @Test
     void one() throws Exception {
         LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
         Widget widget = new Widget(1L, 10, 20, 5, 25, 35, lastModified);

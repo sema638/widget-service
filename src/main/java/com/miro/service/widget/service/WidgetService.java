@@ -4,6 +4,7 @@ import com.miro.service.widget.exception.WidgetNotFound;
 import com.miro.service.widget.model.Paging;
 import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.repository.WidgetRepository;
+import com.miro.service.widget.util.RTreeWrapper;
 import com.miro.service.widget.util.WidgetUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,8 +19,14 @@ public class WidgetService {
     @Autowired
     private WidgetRepository widgetRepository;
 
+    private final RTreeWrapper searchTree = new RTreeWrapper();
+
     public List<Widget> findAll(final Paging paging) {
         return widgetRepository.findAll(WidgetUtil.pageable(paging)).getContent();
+    }
+
+    public List<Widget> findAllInArea(final int left, final int bottom, final int right, final int top) {
+        return searchTree.search(left, bottom, right, top);
     }
 
     public Widget findById(final long id) {
@@ -35,6 +42,7 @@ public class WidgetService {
                     .orElse(0);
             widget.setZindex(maxZIndex + 1);
         }
+
         return save(widget);
     }
 
@@ -49,7 +57,9 @@ public class WidgetService {
 
     public void delete(final long id) {
         try {
+            final Widget widget = findById(id);
             widgetRepository.deleteById(id);
+            searchTree.delete(widget);
         } catch (EntityNotFoundException e) {
             throw new WidgetNotFound(id);
         }
@@ -83,6 +93,10 @@ public class WidgetService {
         widgetsToUpdate.forEach(widgetRepository::save);
 
         widgetToSave.setLastModified(LocalDateTime.now());
-        return widgetRepository.save(widgetToSave);
+
+        final Widget savedWidget = widgetRepository.save(widgetToSave);
+        searchTree.update(savedWidget);
+
+        return savedWidget;
     }
 }

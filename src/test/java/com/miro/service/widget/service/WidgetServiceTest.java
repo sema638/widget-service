@@ -291,7 +291,6 @@ public class WidgetServiceTest {
     @Test
     void updateUpdatesZIndexOfNoneExistingWidgets() {
         Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         when(mockWidgetRepository.findByZindexGreaterThanEqualOrderByZindex(2)).thenReturn(List.of(existingWidget3));
         when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(existingWidget1));
@@ -319,6 +318,10 @@ public class WidgetServiceTest {
 
     @Test
     void deleteWidget() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+
+        when(mockWidgetRepository.findById(1)).thenReturn(Optional.of(existingWidget1));
+
         widgetService.delete(1);
         verify(mockWidgetRepository, times(1)).deleteById(1);
     }

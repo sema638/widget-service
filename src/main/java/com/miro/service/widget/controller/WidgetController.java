@@ -39,7 +39,7 @@ public class WidgetController {
     @Autowired
     private WidgetService widgetService;
 
-    @Operation(summary = "Returns a list of all widget")
+    @Operation(summary = "Returns a list of all widgets")
     @ApiResponse(responseCode = "200", description = "List of widgets returned",
                  content = {@Content(mediaType = APPLICATION_JSON_VALUE, schema = @Schema(implementation = WidgetDTO.class))})
     @GetMapping
@@ -48,6 +48,20 @@ public class WidgetController {
             @RequestParam(value = "size", required = false, defaultValue = "10") int size) {
         final Paging paging = new Paging(page, size);
         return widgetService.findAll(paging).stream()
+                .map(WidgetUtil::convert)
+                .collect(Collectors.toList());
+    }
+
+    @Operation(summary = "Returns a list of all widgets within an area")
+    @ApiResponse(responseCode = "200", description = "List of widgets returned",
+                 content = {@Content(mediaType = APPLICATION_JSON_VALUE, schema = @Schema(implementation = WidgetDTO.class))})
+    @GetMapping("/filter")
+    public List<WidgetDTO> filter(
+            @RequestParam(value = "left") final int left,
+            @RequestParam(value = "bottom") final int bottom,
+            @RequestParam(value = "right") final int right,
+            @RequestParam(value = "top") int top) {
+        return widgetService.findAllInArea(left, bottom, right, top).stream()
                 .map(WidgetUtil::convert)
                 .collect(Collectors.toList());
     }
