@@ -11,7 +11,7 @@ public class CreateWidgetDTO {
     private Integer x;
     @NotNull
     private Integer y;
-    @NotNull
+
     private Integer zIndex;
     @NotNull
     @Positive
