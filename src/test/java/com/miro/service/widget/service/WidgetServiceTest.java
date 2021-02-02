@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -63,16 +64,20 @@ public class WidgetServiceTest {
         List<Widget> widgets = List.of(
                 new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20)),
                 new Widget(2L, 5, 5, 2, 5, 5, LocalDateTime.of(2021, 1, 29, 11, 21)));
-        when(mockWidgetRepository.findAll(any())).thenReturn(widgets);
+        when(mockWidgetRepository.findAll(any())).thenReturn(getPage(widgets));
 
         List<Widget> serviceWidgets = widgetService.findAll(new Paging(0, 10));
 
         assertEquals(widgets, serviceWidgets);
     }
 
+    private PageImpl<Widget> getPage(final List<Widget> widgets) {
+        return new PageImpl<>(widgets, Pageable.unpaged(), 0);
+    }
+
     @Test
     void findAllReturnsEmptyWhenNoWidgets() {
-        when(mockWidgetRepository.findAll(any())).thenReturn(Collections.emptyList());
+        when(mockWidgetRepository.findAll(any())).thenReturn(getPage(Collections.emptyList()));
 
         List<Widget> serviceWidgets = widgetService.findAll(new Paging(0, 10));
 
@@ -81,7 +86,7 @@ public class WidgetServiceTest {
 
     @Test
     void findAllPassesPagingCorrectly() {
-        when(mockWidgetRepository.findAll(any())).thenReturn(Collections.emptyList());
+        when(mockWidgetRepository.findAll(any())).thenReturn(getPage(Collections.emptyList()));
 
         widgetService.findAll(new Paging(2, 5));
 
@@ -120,7 +125,7 @@ public class WidgetServiceTest {
 
     @Test
     void createReturnsSavedWidgetWithStartingZIndex() {
-        when(mockWidgetRepository.findAll(any())).thenReturn(Collections.emptyList());
+        when(mockWidgetRepository.findAll(any())).thenReturn(getPage(Collections.emptyList()));
 
         Widget savedWidget = new Widget(3L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
@@ -129,14 +134,13 @@ public class WidgetServiceTest {
         Widget serviceWidget = widgetService.create(widgetToCreate);
 
         assertEquals(savedWidget, serviceWidget);
-        assertEquals(1, widgetArgumentCaptor.getValue().getZIndex());
+        assertEquals(1, widgetArgumentCaptor.getValue().getZindex());
     }
 
     @Test
     void createReturnsSavedWidgetWithMaximumZIndex() {
-        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2));
+        Widget existingWidget1 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findTopByOrderByZindexDesc()).thenReturn(Optional.of(existingWidget1));
 
         Widget savedWidget = new Widget(3L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
@@ -145,7 +149,7 @@ public class WidgetServiceTest {
         Widget serviceWidget = widgetService.create(widgetToCreate);
 
         assertEquals(savedWidget, serviceWidget);
-        assertEquals(3, widgetArgumentCaptor.getValue().getZIndex());
+        assertEquals(3, widgetArgumentCaptor.getValue().getZindex());
     }
 
     @Test
@@ -153,7 +157,7 @@ public class WidgetServiceTest {
         Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget3 = new Widget(3L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findByZindexGreaterThanEqualOrderByZindex(1)).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
 
         Widget savedWidget = new Widget(4L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
@@ -165,24 +169,23 @@ public class WidgetServiceTest {
         assertEquals(4, widgetArgumentCaptor.getAllValues().size());
 
         assertEquals(3L, widgetArgumentCaptor.getAllValues().get(0).getId());
-        assertEquals(4, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+        assertEquals(4, widgetArgumentCaptor.getAllValues().get(0).getZindex());
 
         assertEquals(2L, widgetArgumentCaptor.getAllValues().get(1).getId());
-        assertEquals(3, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(1).getZindex());
 
         assertEquals(1L, widgetArgumentCaptor.getAllValues().get(2).getId());
-        assertEquals(2, widgetArgumentCaptor.getAllValues().get(2).getZIndex());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(2).getZindex());
 
         assertNull(widgetArgumentCaptor.getAllValues().get(3).getId());
-        assertEquals(1, widgetArgumentCaptor.getAllValues().get(3).getZIndex());
+        assertEquals(1, widgetArgumentCaptor.getAllValues().get(3).getZindex());
     }
 
     @Test
     void createUpdatesZIndexOfOneExistingWidgets() {
-        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findByZindexGreaterThanEqualOrderByZindex(2)).thenReturn(List.of(existingWidget2, existingWidget3));
 
         Widget savedWidget = new Widget(4L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
@@ -194,10 +197,10 @@ public class WidgetServiceTest {
         assertEquals(2, widgetArgumentCaptor.getAllValues().size());
 
         assertEquals(2L, widgetArgumentCaptor.getAllValues().get(0).getId());
-        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZindex());
 
         assertNull(widgetArgumentCaptor.getAllValues().get(1).getId());
-        assertEquals(2, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(1).getZindex());
     }
 
     @Test
@@ -205,7 +208,7 @@ public class WidgetServiceTest {
         Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findAll(any())).thenReturn(getPage(List.of(existingWidget1, existingWidget2, existingWidget3)));
 
         Widget savedWidget = new Widget(4L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
@@ -217,7 +220,7 @@ public class WidgetServiceTest {
         assertEquals(1, widgetArgumentCaptor.getAllValues().size());
 
         assertNull(widgetArgumentCaptor.getAllValues().get(0).getId());
-        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZindex());
     }
 
     @Test
@@ -239,7 +242,7 @@ public class WidgetServiceTest {
         Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget3 = new Widget(3L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findByZindexGreaterThanEqualOrderByZindex(2)).thenReturn(List.of(existingWidget2, existingWidget3));
         when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(existingWidget1));
 
         Widget savedWidget = new Widget(1L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
@@ -252,13 +255,13 @@ public class WidgetServiceTest {
         assertEquals(3, widgetArgumentCaptor.getAllValues().size());
 
         assertEquals(3L, widgetArgumentCaptor.getAllValues().get(0).getId());
-        assertEquals(4, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+        assertEquals(4, widgetArgumentCaptor.getAllValues().get(0).getZindex());
 
         assertEquals(2L, widgetArgumentCaptor.getAllValues().get(1).getId());
-        assertEquals(3, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(1).getZindex());
 
         assertEquals(1L, widgetArgumentCaptor.getAllValues().get(2).getId());
-        assertEquals(2, widgetArgumentCaptor.getAllValues().get(2).getZIndex());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(2).getZindex());
     }
 
     @Test
@@ -266,7 +269,7 @@ public class WidgetServiceTest {
         Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findByZindexGreaterThanEqualOrderByZindex(2)).thenReturn(List.of(existingWidget2, existingWidget3));
         when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(existingWidget1));
 
         Widget savedWidget = new Widget(1L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
@@ -279,10 +282,10 @@ public class WidgetServiceTest {
         assertEquals(2, widgetArgumentCaptor.getAllValues().size());
 
         assertEquals(2L, widgetArgumentCaptor.getAllValues().get(0).getId());
-        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZindex());
 
         assertEquals(1L, widgetArgumentCaptor.getAllValues().get(1).getId());
-        assertEquals(2, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(1).getZindex());
     }
 
     @Test
@@ -290,7 +293,7 @@ public class WidgetServiceTest {
         Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
-        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findByZindexGreaterThanEqualOrderByZindex(2)).thenReturn(List.of(existingWidget3));
         when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(existingWidget1));
 
         Widget savedWidget = new Widget(1L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
@@ -303,7 +306,7 @@ public class WidgetServiceTest {
         assertEquals(1, widgetArgumentCaptor.getAllValues().size());
 
         assertEquals(1L, widgetArgumentCaptor.getAllValues().get(0).getId());
-        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZindex());
     }
 
     @Test

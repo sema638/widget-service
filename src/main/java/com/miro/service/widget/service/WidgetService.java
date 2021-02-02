@@ -6,12 +6,10 @@ import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.repository.WidgetRepository;
 import com.miro.service.widget.util.WidgetUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,10 +18,8 @@ public class WidgetService {
     @Autowired
     private WidgetRepository widgetRepository;
 
-    private static final PageRequest ALL = PageRequest.of(0, Integer.MAX_VALUE);
-
     public List<Widget> findAll(final Paging paging) {
-        return widgetRepository.findAll(WidgetUtil.pageable(paging));
+        return widgetRepository.findAll(WidgetUtil.pageable(paging)).getContent();
     }
 
     public Widget findById(final long id) {
@@ -32,13 +28,12 @@ public class WidgetService {
     }
 
     public Widget create(final Widget widget) {
-        if (widget.getZIndex() == null) {
+        if (widget.getZindex() == null) {
             // find maximum zIndex among existing widgets
-            final Integer maxZIndex = widgetRepository.findAll(ALL).stream()
-                    .map(Widget::getZIndex)
-                    .max(Comparator.naturalOrder())
+            final Integer maxZIndex = widgetRepository.findTopByOrderByZindexDesc()
+                    .map(Widget::getZindex)
                     .orElse(0);
-            widget.setZIndex(maxZIndex + 1);
+            widget.setZindex(maxZIndex + 1);
         }
         return save(widget);
     }
@@ -61,19 +56,24 @@ public class WidgetService {
     }
 
     private Widget save(final Widget widgetToSave) {
-        final List<Widget> widgets = widgetRepository.findAll(ALL);
+        final List<Widget> widgets = widgetRepository.findByZindexGreaterThanEqualOrderByZindex(widgetToSave.getZindex());
         final List<Widget> widgetsToUpdate = new LinkedList<>();
 
         Widget widgetToInsert = widgetToSave;
         for (Widget widget : widgets) {
-            if (widget.getZIndex().intValue() == widgetToInsert.getZIndex().intValue()) {
+            // no need to update the widget itself
+            if (widget.getId().equals(widgetToSave.getId())) {
+                continue;
+            }
+
+            if (widget.getZindex().intValue() == widgetToInsert.getZindex().intValue()) {
                 // widget to insert has the same z-index as existing, some following widgets must be shifted by z-index
                 widgetToInsert = widget;
-                widgetToInsert.setZIndex(widgetToInsert.getZIndex() + 1);
+                widgetToInsert.setZindex(widgetToInsert.getZindex() + 1);
 
                 // put widget with maximum zIndex to the head
                 widgetsToUpdate.add(0, widgetToInsert);
-            } else if (widget.getZIndex() > widgetToInsert.getZIndex()) {
+            } else if (widget.getZindex() > widgetToInsert.getZindex()) {
                 // widgetToSave's zIndex is unique, so no need to update any widgetToSave
                 break;
             }

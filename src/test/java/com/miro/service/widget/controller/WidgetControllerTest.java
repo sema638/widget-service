@@ -62,7 +62,7 @@ public class WidgetControllerTest {
                 .andExpect(jsonPath("$.[0].id", is(widget.getId().intValue())))
                 .andExpect(jsonPath("$.[0].x", is(widget.getX())))
                 .andExpect(jsonPath("$.[0].y", is(widget.getY())))
-                .andExpect(jsonPath("$.[0].zindex", is(widget.getZIndex())))
+                .andExpect(jsonPath("$.[0].zindex", is(widget.getZindex())))
                 .andExpect(jsonPath("$.[0].width", is(widget.getWidth())))
                 .andExpect(jsonPath("$.[0].height", is(widget.getHeight())))
                 .andExpect(jsonPath("$.[0].lastModified", is(lastModified.toString())));
@@ -102,7 +102,7 @@ public class WidgetControllerTest {
                 .andExpect(jsonPath("$.id", is(widget.getId().intValue())))
                 .andExpect(jsonPath("$.x", is(widget.getX())))
                 .andExpect(jsonPath("$.y", is(widget.getY())))
-                .andExpect(jsonPath("$.zindex", is(widget.getZIndex())))
+                .andExpect(jsonPath("$.zindex", is(widget.getZindex())))
                 .andExpect(jsonPath("$.width", is(widget.getWidth())))
                 .andExpect(jsonPath("$.height", is(widget.getHeight())))
                 .andExpect(jsonPath("$.lastModified", is(lastModified.toString())));

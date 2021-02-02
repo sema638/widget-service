@@ -3,6 +3,8 @@ package com.miro.service.widget.repository.impl;
 import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.repository.WidgetRepository;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
@@ -22,17 +24,32 @@ public class MemoryWidgetRepository implements WidgetRepository {
     private final AtomicLong idGenerator = new AtomicLong();
 
     @Override
-    public List<Widget> findAll(final Pageable pageable) {
-        return storage.values().stream()
-                .sorted(Comparator.comparingLong(Widget::getZIndex))
+    public Page<Widget> findAll(final Pageable pageable) {
+        final List<Widget> widgets = storage.values().stream()
+                .sorted(Comparator.comparingLong(Widget::getZindex))
                 .skip(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .collect(Collectors.toList());
+        return new PageImpl<>(widgets, pageable, storage.size());
     }
 
     @Override
     public Optional<Widget> findById(final long id) {
         return Optional.ofNullable(storage.get(id));
+    }
+
+    @Override
+    public Optional<Widget> findTopByOrderByZindexDesc() {
+        return storage.values().stream()
+                .max(Comparator.comparingLong(Widget::getZindex));
+    }
+
+    @Override
+    public List<Widget> findByZindexGreaterThanEqualOrderByZindex(final int zIndex) {
+        return storage.values().stream()
+                .filter(widget -> widget.getZindex() >= zIndex)
+                .sorted(Comparator.comparingLong(Widget::getZindex))
+                .collect(Collectors.toList());
     }
 
     @Override
