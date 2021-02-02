@@ -1,10 +1,12 @@
 package com.miro.service.widget.service;
 
 import com.miro.service.widget.exception.WidgetNotFound;
+import com.miro.service.widget.model.Paging;
 import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.repository.WidgetRepository;
 import com.miro.service.widget.util.WidgetUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
@@ -12,17 +14,16 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class WidgetService {
     @Autowired
     private WidgetRepository widgetRepository;
 
-    public List<Widget> findAll() {
-        return widgetRepository.findAll().stream()
-                .sorted(Comparator.comparingLong(Widget::getZIndex))
-                .collect(Collectors.toList());
+    private static final PageRequest ALL = PageRequest.of(0, Integer.MAX_VALUE);
+
+    public List<Widget> findAll(final Paging paging) {
+        return widgetRepository.findAll(WidgetUtil.pageable(paging));
     }
 
     public Widget findById(final long id) {
@@ -33,7 +34,7 @@ public class WidgetService {
     public Widget create(final Widget widget) {
         if (widget.getZIndex() == null) {
             // find maximum zIndex among existing widgets
-            final Integer maxZIndex = widgetRepository.findAll().stream()
+            final Integer maxZIndex = widgetRepository.findAll(ALL).stream()
                     .map(Widget::getZIndex)
                     .max(Comparator.naturalOrder())
                     .orElse(0);
@@ -60,7 +61,7 @@ public class WidgetService {
     }
 
     private Widget save(final Widget widgetToSave) {
-        final List<Widget> widgets = findAll();
+        final List<Widget> widgets = widgetRepository.findAll(ALL);
         final List<Widget> widgetsToUpdate = new LinkedList<>();
 
         Widget widgetToInsert = widgetToSave;

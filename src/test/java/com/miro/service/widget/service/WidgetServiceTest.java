@@ -2,15 +2,19 @@ package com.miro.service.widget.service;
 
 
 import com.miro.service.widget.exception.WidgetNotFound;
+import com.miro.service.widget.model.Paging;
 import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.repository.WidgetRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.persistence.EntityNotFoundException;
@@ -18,7 +22,6 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,10 +42,13 @@ public class WidgetServiceTest {
     }
 
     @Autowired
-    private WidgetService widgetService;
+    WidgetService widgetService;
 
     @MockBean
-    private WidgetRepository mockWidgetRepository;
+    WidgetRepository mockWidgetRepository;
+
+    @Captor
+    ArgumentCaptor<Pageable> pageableArgumentCaptor;
 
     @BeforeEach
     void setUp() {
@@ -53,32 +59,31 @@ public class WidgetServiceTest {
         List<Widget> widgets = List.of(
                 new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20)),
                 new Widget(2L, 5, 5, 2, 5, 5, LocalDateTime.of(2021, 1, 29, 11, 21)));
-        when(mockWidgetRepository.findAll()).thenReturn(widgets);
+        when(mockWidgetRepository.findAll(any())).thenReturn(widgets);
 
-        List<Widget> serviceWidgets = widgetService.findAll();
+        List<Widget> serviceWidgets = widgetService.findAll(new Paging(0, 10));
 
         assertEquals(widgets, serviceWidgets);
     }
 
     @Test
     void findAllReturnsEmptyWhenNoWidgets() {
-        when(mockWidgetRepository.findAll()).thenReturn(Collections.emptyList());
+        when(mockWidgetRepository.findAll(any())).thenReturn(Collections.emptyList());
 
-        List<Widget> serviceWidgets = widgetService.findAll();
+        List<Widget> serviceWidgets = widgetService.findAll(new Paging(0, 10));
 
         assertEquals(0, serviceWidgets.size());
     }
 
     @Test
-    void findAllReturnsSortedByZIndex() {
-        List<Widget> widgets = List.of(
-                new Widget(1L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20)),
-                new Widget(2L, 5, 5, 1, 5, 5, LocalDateTime.of(2021, 1, 29, 11, 21)));
-        when(mockWidgetRepository.findAll()).thenReturn(widgets);
+    void findAllPassesPagingCorrectly() {
+        when(mockWidgetRepository.findAll(any())).thenReturn(Collections.emptyList());
 
-        List<Integer> zIndexes = widgetService.findAll().stream()
-                .map(Widget::getZIndex).collect(Collectors.toList());
-        assertEquals(List.of(1, 2), zIndexes);
+        widgetService.findAll(new Paging(2, 5));
+
+        verify(mockWidgetRepository).findAll(pageableArgumentCaptor.capture());
+        assertEquals(2, pageableArgumentCaptor.getValue().getPageNumber());
+        assertEquals(5, pageableArgumentCaptor.getValue().getPageSize());
     }
 
     @Test

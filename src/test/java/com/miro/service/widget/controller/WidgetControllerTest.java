@@ -1,9 +1,12 @@
 package com.miro.service.widget.controller;
 
+import com.miro.service.widget.model.Paging;
 import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.service.WidgetService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -17,7 +20,9 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,12 +32,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(WidgetController.class)
 public class WidgetControllerTest {
     @Autowired
-    private MockMvc mockMvc;
+    MockMvc mockMvc;
 
     @MockBean
-    private WidgetService widgetService;
+    WidgetService widgetService;
 
-    private static final String WIDGET_LINK = "/api/v1/widgets";
+    @Captor
+    ArgumentCaptor<Paging> pagingArgumentCaptor;
+
+    private static final String WIDGETS_LINK = "/api/v1/widgets";
 
     @Test
     void all() throws Exception {
@@ -40,9 +48,9 @@ public class WidgetControllerTest {
         Widget widget = new Widget(1L, 10, 20, 5, 25, 35, lastModified);
 
         List<Widget> widgets = List.of(widget);
-        when(widgetService.findAll()).thenReturn(widgets);
+        when(widgetService.findAll(any())).thenReturn(widgets);
 
-        mockMvc.perform(MockMvcRequestBuilders.get(WIDGET_LINK)
+        mockMvc.perform(MockMvcRequestBuilders.get(WIDGETS_LINK)
                 .accept(MediaType.APPLICATION_JSON_VALUE))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -57,13 +65,33 @@ public class WidgetControllerTest {
     }
 
     @Test
+    void allWithPaging() throws Exception {
+        LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
+
+        Widget widget = new Widget(1L, 10, 20, 5, 25, 35, lastModified);
+
+        List<Widget> widgets = List.of(widget);
+        when(widgetService.findAll(any())).thenReturn(widgets);
+
+        mockMvc.perform(MockMvcRequestBuilders.get(WIDGETS_LINK + "/?page=1&size=4")
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(widgets.size())));
+
+        verify(widgetService).findAll(pagingArgumentCaptor.capture());
+        assertEquals(1, pagingArgumentCaptor.getValue().getPage());
+        assertEquals(4, pagingArgumentCaptor.getValue().getSize());
+    }
+
+    @Test
     void one() throws Exception {
         LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
         Widget widget = new Widget(1L, 10, 20, 5, 25, 35, lastModified);
 
         when(widgetService.findById(1)).thenReturn(widget);
 
-        mockMvc.perform(MockMvcRequestBuilders.get(WIDGET_LINK + "/" + widget.getId())
+        mockMvc.perform(MockMvcRequestBuilders.get(WIDGETS_LINK + "/" + widget.getId())
                 .accept(MediaType.APPLICATION_JSON_VALUE))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -84,7 +112,7 @@ public class WidgetControllerTest {
 
         when(widgetService.create(any())).thenReturn(widget);
 
-        mockMvc.perform(MockMvcRequestBuilders.post(WIDGET_LINK)
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(widgetBody)
                 .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -107,7 +135,7 @@ public class WidgetControllerTest {
 
         when(widgetService.update(any())).thenReturn(widget);
 
-        mockMvc.perform(MockMvcRequestBuilders.put(WIDGET_LINK + "/" + widget.getId())
+        mockMvc.perform(MockMvcRequestBuilders.put(WIDGETS_LINK + "/" + widget.getId())
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(widgetBody)
                 .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -120,5 +148,18 @@ public class WidgetControllerTest {
                 .andExpect(jsonPath("$.width", is(25)))
                 .andExpect(jsonPath("$.height", is(35)))
                 .andExpect(jsonPath("$.lastModified", is(lastModified.toString())));
+    }
+
+    @Test
+    void delete() throws Exception {
+        LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
+        String widgetBody = "{\"x\":10,\"y\":20,\"zindex\":5,\"width\":25,\"height\":35}";
+        Widget widget = new Widget(1L, 10, 20, 5, 25, 35, lastModified);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(WIDGETS_LINK + "/" + widget.getId())
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(status().isNoContent());
     }
 }

@@ -3,6 +3,7 @@ package com.miro.service.widget.controller;
 import com.miro.service.widget.dto.CreateWidgetDTO;
 import com.miro.service.widget.dto.UpdateWidgetDTO;
 import com.miro.service.widget.dto.WidgetDTO;
+import com.miro.service.widget.model.Paging;
 import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.service.WidgetService;
 import com.miro.service.widget.util.WidgetUtil;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
@@ -30,7 +32,7 @@ import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-@Api
+@Api("Widget Service")
 @RestController
 @RequestMapping(path = {"/api/v1/widgets"}, produces = APPLICATION_JSON_VALUE)
 public class WidgetController {
@@ -41,8 +43,11 @@ public class WidgetController {
     @ApiResponse(responseCode = "200", description = "List of orders returned",
                  content = {@Content(mediaType = APPLICATION_JSON_VALUE, schema = @Schema(implementation = WidgetDTO.class))})
     @GetMapping
-    public List<WidgetDTO> all() {
-        return widgetService.findAll().stream()
+    public List<WidgetDTO> all(
+            @RequestParam(value = "page", required = false, defaultValue = "0") final int page,
+            @RequestParam(value = "size", required = false, defaultValue = "10") int size) {
+        final Paging paging = new Paging(page, size);
+        return widgetService.findAll(paging).stream()
                 .map(WidgetUtil::convert)
                 .collect(Collectors.toList());
     }
@@ -50,7 +55,7 @@ public class WidgetController {
     @Operation(summary = "Get a widget by its id")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Found the widget",
-                         content = {@Content(mediaType = APPLICATION_JSON_VALUE, schema = @Schema(implementation = WidgetDTO.class))}),
+                 content = {@Content(mediaType = APPLICATION_JSON_VALUE, schema = @Schema(implementation = WidgetDTO.class))}),
             @ApiResponse(responseCode = "404", description = "Widget not found", content = @Content)})
     @GetMapping("/{id}")
     public WidgetDTO one(@PathVariable final long id) {

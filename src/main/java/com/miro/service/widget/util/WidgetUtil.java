@@ -1,7 +1,10 @@
 package com.miro.service.widget.util;
 
 import com.miro.service.widget.dto.WidgetDTO;
+import com.miro.service.widget.model.Paging;
 import com.miro.service.widget.model.Widget;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 
@@ -14,6 +17,10 @@ public class WidgetUtil {
                 widget.getWidth(),
                 widget.getHeight(),
                 widget.getLastModified());
+    }
+
+    public static Pageable pageable(final Paging paging) {
+        return PageRequest.of(paging.getPage(), paging.getSize());
     }
 
     public static Widget update(final Widget sourceWidget, final Widget updateData) {
