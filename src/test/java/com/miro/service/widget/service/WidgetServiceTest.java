@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -46,6 +47,9 @@ public class WidgetServiceTest {
 
     @MockBean
     WidgetRepository mockWidgetRepository;
+
+    @Captor
+    ArgumentCaptor<Widget> widgetArgumentCaptor;
 
     @Captor
     ArgumentCaptor<Pageable> pageableArgumentCaptor;
@@ -115,6 +119,108 @@ public class WidgetServiceTest {
     }
 
     @Test
+    void createReturnsSavedWidgetWithStartingZIndex() {
+        when(mockWidgetRepository.findAll(any())).thenReturn(Collections.emptyList());
+
+        Widget savedWidget = new Widget(3L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToCreate = new Widget(null, 0, 0, null, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.create(widgetToCreate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(1, widgetArgumentCaptor.getValue().getZIndex());
+    }
+
+    @Test
+    void createReturnsSavedWidgetWithMaximumZIndex() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2));
+
+        Widget savedWidget = new Widget(3L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToCreate = new Widget(null, 0, 0, null, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.create(widgetToCreate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(3, widgetArgumentCaptor.getValue().getZIndex());
+    }
+
+    @Test
+    void createUpdatesZIndexOfAllExistingWidgets() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget3 = new Widget(3L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+
+        Widget savedWidget = new Widget(4L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToCreate = new Widget(null, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.create(widgetToCreate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(4, widgetArgumentCaptor.getAllValues().size());
+
+        assertEquals(3L, widgetArgumentCaptor.getAllValues().get(0).getId());
+        assertEquals(4, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+
+        assertEquals(2L, widgetArgumentCaptor.getAllValues().get(1).getId());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+
+        assertEquals(1L, widgetArgumentCaptor.getAllValues().get(2).getId());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(2).getZIndex());
+
+        assertNull(widgetArgumentCaptor.getAllValues().get(3).getId());
+        assertEquals(1, widgetArgumentCaptor.getAllValues().get(3).getZIndex());
+    }
+
+    @Test
+    void createUpdatesZIndexOfOneExistingWidgets() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+
+        Widget savedWidget = new Widget(4L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToCreate = new Widget(null, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.create(widgetToCreate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(2, widgetArgumentCaptor.getAllValues().size());
+
+        assertEquals(2L, widgetArgumentCaptor.getAllValues().get(0).getId());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+
+        assertNull(widgetArgumentCaptor.getAllValues().get(1).getId());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+    }
+
+    @Test
+    void createUpdatesZIndexOfNoneExistingWidgets() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+
+        Widget savedWidget = new Widget(4L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToCreate = new Widget(null, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.create(widgetToCreate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(1, widgetArgumentCaptor.getAllValues().size());
+
+        assertNull(widgetArgumentCaptor.getAllValues().get(0).getId());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+    }
+
+    @Test
     void updateReturnsSavedWidget() {
         Widget originalWidget = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
         when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(originalWidget));
@@ -126,6 +232,78 @@ public class WidgetServiceTest {
         Widget serviceWidget = widgetService.update(widgetToUpdate);
 
         assertEquals(savedWidget, serviceWidget);
+    }
+
+    @Test
+    void updateUpdatesZIndexOfAllExistingWidgets() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget3 = new Widget(3L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(existingWidget1));
+
+        Widget savedWidget = new Widget(1L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToUpdate = new Widget(1L, 2, 2, 2, null, null, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.update(widgetToUpdate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(3, widgetArgumentCaptor.getAllValues().size());
+
+        assertEquals(3L, widgetArgumentCaptor.getAllValues().get(0).getId());
+        assertEquals(4, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+
+        assertEquals(2L, widgetArgumentCaptor.getAllValues().get(1).getId());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+
+        assertEquals(1L, widgetArgumentCaptor.getAllValues().get(2).getId());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(2).getZIndex());
+    }
+
+    @Test
+    void updateUpdatesZIndexOfOneExistingWidgets() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(existingWidget1));
+
+        Widget savedWidget = new Widget(1L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToUpdate = new Widget(1L, 2, 2, 2, null, null, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.update(widgetToUpdate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(2, widgetArgumentCaptor.getAllValues().size());
+
+        assertEquals(2L, widgetArgumentCaptor.getAllValues().get(0).getId());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
+
+        assertEquals(1L, widgetArgumentCaptor.getAllValues().get(1).getId());
+        assertEquals(2, widgetArgumentCaptor.getAllValues().get(1).getZIndex());
+    }
+
+    @Test
+    void updateUpdatesZIndexOfNoneExistingWidgets() {
+        Widget existingWidget1 = new Widget(1L, 0, 0, 1, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget2 = new Widget(2L, 0, 0, 2, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget existingWidget3 = new Widget(3L, 0, 0, 4, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.findAll(any())).thenReturn(List.of(existingWidget1, existingWidget2, existingWidget3));
+        when(mockWidgetRepository.findById(1L)).thenReturn(Optional.of(existingWidget1));
+
+        Widget savedWidget = new Widget(1L, 0, 0, 3, 7, 7, LocalDateTime.of(2021, 1, 29, 11, 20));
+        when(mockWidgetRepository.save(widgetArgumentCaptor.capture())).thenReturn(savedWidget);
+
+        Widget widgetToUpdate = new Widget(1L, 2, 2, 3, null, null, LocalDateTime.of(2021, 1, 29, 11, 20));
+        Widget serviceWidget = widgetService.update(widgetToUpdate);
+
+        assertEquals(savedWidget, serviceWidget);
+        assertEquals(1, widgetArgumentCaptor.getAllValues().size());
+
+        assertEquals(1L, widgetArgumentCaptor.getAllValues().get(0).getId());
+        assertEquals(3, widgetArgumentCaptor.getAllValues().get(0).getZIndex());
     }
 
     @Test
