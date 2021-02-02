@@ -2,6 +2,7 @@ package com.miro.service.widget.repository.impl;
 
 import com.miro.service.widget.model.Widget;
 import com.miro.service.widget.repository.WidgetRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Repository
+@Profile("memory")
 public class MemoryWidgetRepository implements WidgetRepository {
     private final Map<Long, Widget> storage = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong();

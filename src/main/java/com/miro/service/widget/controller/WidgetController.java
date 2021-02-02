@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-@Api("Widget Service")
+@Api("widget")
 @RestController
 @RequestMapping(path = {"/api/v1/widgets"}, produces = APPLICATION_JSON_VALUE)
 public class WidgetController {
