@@ -40,7 +40,7 @@ public class WidgetController {
     private WidgetService widgetService;
 
     @Operation(summary = "Returns a list of all widget")
-    @ApiResponse(responseCode = "200", description = "List of orders returned",
+    @ApiResponse(responseCode = "200", description = "List of widgets returned",
                  content = {@Content(mediaType = APPLICATION_JSON_VALUE, schema = @Schema(implementation = WidgetDTO.class))})
     @GetMapping
     public List<WidgetDTO> all(
