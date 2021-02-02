@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -36,6 +37,9 @@ public class WidgetControllerTest {
 
     @MockBean
     WidgetService widgetService;
+
+    @Captor
+    ArgumentCaptor<Widget> widgetArgumentCaptor;
 
     @Captor
     ArgumentCaptor<Paging> pagingArgumentCaptor;
@@ -128,6 +132,102 @@ public class WidgetControllerTest {
     }
 
     @Test
+    void createFailsWithMissingX() throws Exception {
+        String widgetBody = "{\"y\":20,\"width\":25,\"height\":35,\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createFailsWithMissingY() throws Exception {
+        String widgetBody = "{\"x\":20,\"width\":25,\"height\":35,\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createFailsWithMissingWidth() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"height\":35,\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createFailsWithMissingHeight() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":35,\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createFailsWithNegativeWidth() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":-35,\"height\":35\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createFailsWithZeroWidth() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":0,\"height\":35\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createFailsWithNegativeHeight() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":35,\"height\":-35\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createFailsWithZeroHeight() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":35,\"height\":0\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.post(WIDGETS_LINK)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void update() throws Exception {
         LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
         String widgetBody = "{\"x\":10,\"y\":20,\"zindex\":5,\"width\":25,\"height\":35}";
@@ -151,6 +251,79 @@ public class WidgetControllerTest {
     }
 
     @Test
+    void updateDoesNotUpdateId() throws Exception {
+        LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
+        String widgetBody = "{\"id\":2,\"x\":10,\"y\":20,\"zindex\":5,\"width\":25,\"height\":35}";
+        Widget widget = new Widget(1L, 10, 20, 5, 25, 35, lastModified);
+
+        when(widgetService.update(widgetArgumentCaptor.capture())).thenReturn(widget);
+
+        mockMvc.perform(MockMvcRequestBuilders.put(WIDGETS_LINK + "/" + widget.getId())
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.x", is(10)))
+                .andExpect(jsonPath("$.y", is(20)))
+                .andExpect(jsonPath("$.zindex", is(5)))
+                .andExpect(jsonPath("$.width", is(25)))
+                .andExpect(jsonPath("$.height", is(35)))
+                .andExpect(jsonPath("$.lastModified", is(lastModified.toString())));
+
+        assertEquals(1L, widgetArgumentCaptor.getValue().getId());
+    }
+
+    @Test
+    void updateFailsWithNegativeWidth() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":-35,\"height\":35\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.put(WIDGETS_LINK + "/1")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateFailsWithZeroWidth() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":0,\"height\":35\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.put(WIDGETS_LINK + "/1")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateFailsWithNegativeHeight() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":35,\"height\":-35\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.put(WIDGETS_LINK + "/1")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateFailsWithZeroHeight() throws Exception {
+        String widgetBody = "{\"x\":20,\"y\":20,\"width\":35,\"height\":0\"zindex\":5}";
+
+        mockMvc.perform(MockMvcRequestBuilders.put(WIDGETS_LINK + "/1")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(widgetBody)
+                .accept(MediaType.APPLICATION_JSON_VALUE))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void delete() throws Exception {
         LocalDateTime lastModified = LocalDateTime.of(2020, 2, 1, 16, 55, 12, 4343542);
         String widgetBody = "{\"x\":10,\"y\":20,\"zindex\":5,\"width\":25,\"height\":35}";
@@ -161,5 +334,7 @@ public class WidgetControllerTest {
                 .content(widgetBody)
                 .accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isNoContent());
+
+        verify(widgetService, times(1)).delete(1);
     }
 }
