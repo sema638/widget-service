@@ -10,16 +10,16 @@ import com.miro.service.widget.model.Widget;
 import rx.Observable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class RTreeWrapper {
     @VisibleForTesting
     volatile RTree<Widget, Geometry> tree = RTree.create();
 
     @VisibleForTesting
-    final Map<Long, Geometry> geometryMap = new ConcurrentHashMap<>();
+    final Map<Long, Geometry> geometryMap = new HashMap<>();
 
     public synchronized void add(final Widget widget) {
         final Rectangle geometry = Geometries.rectangle(widget.getX(), widget.getY(),
