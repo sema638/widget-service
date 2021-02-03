@@ -10,33 +10,30 @@ import com.miro.service.widget.model.Widget;
 import rx.Observable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RTreeWrapper {
-    /**
-     * RTree is immutable, so no need in synchronization
-     */
     @VisibleForTesting
-    RTree<Widget, Geometry> tree = RTree.create();
+    volatile RTree<Widget, Geometry> tree = RTree.create();
 
     @VisibleForTesting
-    final Map<Long, Geometry> geometryMap = new HashMap<>();
+    final Map<Long, Geometry> geometryMap = new ConcurrentHashMap<>();
 
-    public void add(final Widget widget) {
+    public synchronized void add(final Widget widget) {
         final Rectangle geometry = Geometries.rectangle(widget.getX(), widget.getY(),
                 widget.getX() + widget.getWidth() - 1, widget.getY() + widget.getHeight() - 1);
         tree = tree.add(widget, geometry);
         geometryMap.put(widget.getId(), geometry);
     }
 
-    public void update(final Widget widget) {
+    public synchronized void update(final Widget widget) {
         delete(widget);
         add(widget);
     }
 
-    public void delete(final Widget widget) {
+    public synchronized void delete(final Widget widget) {
         if (geometryMap.containsKey(widget.getId())) {
             tree = tree.delete(widget, geometryMap.get(widget.getId()));
             geometryMap.remove(widget.getId());
